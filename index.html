@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tibia — Exaltation Forge Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #1a1510;
+  --bg2:      #221c14;
+  --bg3:      #2a2218;
+  --border:   rgba(180,140,60,0.2);
+  --border2:  rgba(180,140,60,0.4);
+  --gold:     #c8a84b;
+  --gold2:    #e8c96a;
+  --gold-dim: #7a6328;
+  --text:     #e8dcc8;
+  --text2:    #a09070;
+  --text3:    #6a5a40;
+  --perf:     #4caf82;
+  --avg:      #5b9bd5;
+  --p99:      #d4755a;
+  --conv:     #9b7fd4;
+  --red:      #c05050;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Crimson Pro',Georgia,serif;min-height:100vh;}
+
+/* ── header ── */
+.header{
+  text-align:center;
+  padding:3rem 1rem 2rem;
+  border-bottom:1px solid var(--border);
+  position:relative;
+}
+.header::before{
+  content:'';
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 80% at 50% 0%, rgba(200,168,75,0.08), transparent);
+  pointer-events:none;
+}
+.header h1{
+  font-family:'Cinzel',serif;
+  font-size:clamp(1.4rem,4vw,2.4rem);
+  font-weight:600;
+  color:var(--gold2);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-bottom:.4rem;
+}
+.header p{font-size:1rem;color:var(--text2);font-style:italic;letter-spacing:.04em;}
+.ornament{color:var(--gold-dim);font-size:.8rem;letter-spacing:.3em;margin-bottom:.75rem;}
+
+/* ── layout ── */
+.container{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;}
+
+/* ── tabs ── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:2rem;}
+.tab-btn{
+  font-family:'Cinzel',serif;font-size:.75rem;letter-spacing:.1em;
+  padding:.65rem 1.4rem;background:none;border:none;color:var(--text3);
+  cursor:pointer;text-transform:uppercase;border-bottom:2px solid transparent;
+  transition:color .2s,border-color .2s;
+}
+.tab-btn:hover{color:var(--text2);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── section titles ── */
+.sec-title{
+  font-family:'Cinzel',serif;font-size:.85rem;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--gold);
+  margin-bottom:1.25rem;padding-bottom:.5rem;
+  border-bottom:1px solid var(--border);
+}
+
+/* ── input grid ── */
+.cfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.field{display:flex;flex-direction:column;gap:.4rem;}
+.field label{font-size:.8rem;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;}
+.field input, .field select{
+  background:var(--bg3);border:1px solid var(--border);border-radius:4px;
+  color:var(--text);font-family:'Crimson Pro',serif;font-size:1rem;
+  padding:.45rem .75rem;outline:none;transition:border-color .2s;
+}
+.field input:focus,.field select:focus{border-color:var(--gold-dim);}
+.field select option{background:var(--bg3);}
+
+/* ── button ── */
+.btn{
+  font-family:'Cinzel',serif;font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;
+  background:transparent;border:1px solid var(--gold-dim);color:var(--gold);
+  padding:.7rem 2rem;border-radius:4px;cursor:pointer;
+  transition:background .2s,border-color .2s,color .2s;
+  margin-bottom:1rem;
+}
+.btn:hover{background:rgba(200,168,75,.08);border-color:var(--gold);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── progress ── */
+.prog{font-size:.9rem;color:var(--text2);font-style:italic;min-height:1.4rem;margin-bottom:1rem;}
+
+/* ── metrics ── */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1.5rem;}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;}
+.mlabel{font-size:.75rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;}
+.mval{font-size:1.25rem;font-weight:600;}
+.msub{font-size:.75rem;color:var(--text3);margin-top:.2rem;}
+
+/* ── table ── */
+.tbl-wrap{overflow-x:auto;margin-bottom:.75rem;}
+table{width:100%;border-collapse:collapse;font-size:.88rem;}
+thead{background:var(--bg2);}
+th{
+  padding:8px 11px;font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text2);font-weight:400;
+  border-bottom:1px solid var(--border2);text-align:right;white-space:nowrap;
+}
+th.left{text-align:left;}
+td{
+  padding:8px 11px;border-bottom:1px solid var(--border);
+  text-align:right;white-space:nowrap;
+}
+td.left{text-align:left;color:var(--gold);font-family:'Cinzel',serif;font-size:.8rem;letter-spacing:.06em;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(200,168,75,.03);}
+.sep{width:1px;padding:0;background:var(--border);min-width:1px;}
+.col-perf{color:var(--perf);}
+.col-avg {color:var(--avg);}
+.col-p99 {color:var(--p99);}
+.col-conv{color:var(--conv);}
+.note{font-size:.82rem;color:var(--text3);font-style:italic;line-height:1.7;margin-top:.5rem;}
+
+/* ── legend pills ── */
+.legend{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem;}
+.pill{
+  font-size:.75rem;padding:.25rem .75rem;border-radius:20px;letter-spacing:.06em;
+  display:flex;align-items:center;gap:.4rem;
+}
+.pill-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.pill-perf{background:rgba(76,175,130,.12);color:var(--perf);}
+.pill-avg {background:rgba(91,155,213,.12);color:var(--avg);}
+.pill-p99 {background:rgba(212,117,90,.12);color:var(--p99);}
+.pill-conv{background:rgba(155,127,212,.12);color:var(--conv);}
+
+.divider{border:none;border-top:1px solid var(--border);margin:2rem 0;}
+.formula-box{
+  background:var(--bg2);border:1px solid var(--border);border-radius:6px;
+  padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:.9rem;line-height:2;
+}
+.formula-box span{color:var(--gold2);font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="ornament">⸻ ✦ ⸻</div>
+  <h1>Exaltation Forge</h1>
+  <p>Calculadora de custos — Class 4 · Convergence &amp; Fusion Normal</p>
+</div>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('convergence',this)">Convergence + Food</button>
+    <button class="tab-btn" onclick="switchTab('fusion',this)">Fusion Normal (probabilístico)</button>
+    <button class="tab-btn" onclick="switchTab('tabelas',this)">Tabelas de Referência</button>
+  </div>
+
+  <!-- ══════════════ TAB 1: CONVERGENCE ══════════════ -->
+  <div class="tab-panel active" id="tab-convergence">
+
+    <div class="formula-box">
+      <span>Item Caro T(n-1)</span> + <span>Food T(n-1)</span> + <span>Taxa Convergence(n)</span> = <span>Item Caro T(n)</span><br>
+      Food T(n-1) é construído via <span>Fusion Normal</span> (probabilístico) com itens baratos.
+    </div>
+
+    <div class="cfg">
+      <div class="field"><label>Food T0 (kk)</label><input id="c_pFood" value="4"/></div>
+      <div class="field"><label>Item Caro T0 (kk)</label><input id="c_pCaro" value="200"/></div>
+      <div class="field"><label>Tier máximo</label>
+        <select id="c_maxT">
+          <option value="1">T1</option><option value="2">T2</option>
+          <option value="3">T3</option><option value="4">T4</option>
+          <option value="5">T5</option><option value="6">T6</option>
+          <option value="7" selected>T7</option><option value="8">T8</option>
+          <option value="9">T9</option><option value="10">T10</option>
+        </select>
+      </div>
+      <div class="field"><label>Simulações MC</label>
+        <select id="c_runs">
+          <option value="30000">30k (rápido)</option>
+          <option value="60000" selected>60k</option>
+          <option value="100000">100k (preciso)</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn" id="c_btn" onclick="runConvergence()">Calcular ↗</button>
+    <div class="prog" id="c_prog"></div>
+    <div id="c_res"></div>
+  </div>
+
+  <!-- ══════════════ TAB 2: FUSION NORMAL ══════════════ -->
+  <div class="tab-panel" id="tab-fusion">
+
+    <div class="formula-box">
+      <span>65%</span> sucesso · <span>17.5%</span> falha sem perda (retry) · <span>17.5%</span> falha com perda (1 item volta 1 tier)<br>
+      Falha com perda → reconstrói aquele item do zero → custo recursivo.
+    </div>
+
+    <div class="cfg">
+      <div class="field"><label>Item T0 (kk)</label><input id="f_p0" value="4"/></div>
+      <div class="field"><label>Tier alvo</label>
+        <select id="f_maxT">
+          <option value="1">T1</option><option value="2">T2</option>
+          <option value="3">T3</option><option value="4">T4</option>
+          <option value="5" selected>T5</option><option value="6">T6</option>
+          <option value="7">T7</option><option value="8">T8</option>
+          <option value="9">T9</option><option value="10">T10</option>
+        </select>
+      </div>
+      <div class="field"><label>Simulações MC</label>
+        <select id="f_runs">
+          <option value="30000">30k</option>
+          <option value="60000" selected>60k</option>
+          <option value="100000">100k</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn" id="f_btn" onclick="runFusion()">Calcular ↗</button>
+    <div class="prog" id="f_prog"></div>
+    <div id="f_res"></div>
+  </div>
+
+  <!-- ══════════════ TAB 3: TABELAS ══════════════ -->
+  <div class="tab-panel" id="tab-tabelas">
+    <div class="sec-title">Taxas de Gold — Class 4</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="left">Tier</th>
+          <th class="col-avg">Fusion Normal</th>
+          <th class="col-conv">Convergence Fusion</th>
+          <th>Transfer</th>
+          <th class="col-p99">Conv. Transfer</th>
+          <th>Exalted Cores (Conv. Trans.)</th>
+        </tr></thead>
+        <tbody id="ref_tbody"></tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:.75rem;">
+      Fusion: 100 Dust por tentativa · Convergence Fusion: 130 Dust · Convergence Transfer: 160 Dust<br>
+      Transfer: 100 Dust + Exalted Cores (variável) · Item fonte é destruído no Transfer.
+    </p>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ── DADOS OFICIAIS ───────────────────────────────────────────────────────────
+const TAXA_FUS   = [0,8,20,40,65,100,250,750,2500,8000,15000];
+const TAXA_CONV  = [0,55,110,170,300,875,2350,6950,21250,50000,125000];
+const TAXA_TRANS = [0,0,20,40,65,100,250,750,2500,8000,15000];
+const TAXA_CTRANS= [0,65,165,375,800,2000,5250,14500,42500,100000,300000];
+const CORES_CT   = [0,1,2,5,10,15,25,35,50,60,85];
+
+const P_SUC  = 0.65;
+const P_FSAFE= 0.175;
+const P_FLOSS= 0.175;
+
+// ── FORMATAÇÃO ───────────────────────────────────────────────────────────────
+function fmt(v){
+  if(v===undefined||v===null||v<=0) return '—';
+  // v está em kk (milhões). 1000kk = 1kkk (bilhão)
+  if(v>=1000) return (v/1000).toFixed(2)+'kkk';
+  if(v>=1)    return v.toFixed(2)+'kk';
+  return (v*1000).toFixed(2)+'k';
+}
+function parse(id){ return parseFloat(document.getElementById(id).value.replace(',','.')) || 0; }
+
+// ── ANALÍTICO PERFEITO ───────────────────────────────────────────────────────
+// perf[t] = 2*perf[t-1] + TAXA_FUS[t],  perf[0] = itemP
+function calcPerf(maxT, itemP){
+  const c=[itemP];
+  for(let t=1;t<=maxT;t++) c.push(2*c[t-1]+TAXA_FUS[t]);
+  return c;
+}
+
+// ── ANALÍTICO MÉDIO (Markov) ─────────────────────────────────────────────────
+// avg[t] = 2*avg[t-1] + (TAXA_FUS[t] + P_FLOSS*avg[t-1]) / P_SUC
+function calcAvg(maxT, itemP){
+  const c=[itemP];
+  for(let t=1;t<=maxT;t++){
+    const p=c[t-1];
+    c.push(2*p+(TAXA_FUS[t]+P_FLOSS*p)/P_SUC);
+  }
+  return c;
+}
+
+// ── MONTE CARLO ──────────────────────────────────────────────────────────────
+function simOnce(targetT, itemP){
+  let total=0;
+  function build(t){
+    if(t===0){total+=itemP;return;}
+    build(t-1);build(t-1);
+    let done=false;
+    while(!done){
+      total+=TAXA_FUS[t];
+      const r=Math.random();
+      if(r<P_SUC){done=true;}
+      else if(r<P_SUC+P_FSAFE){/* retry */}
+      else{
+        // reconstrói 1 item t-1
+        (function rebuild(rt){
+          if(rt===0){total+=itemP;return;}
+          rebuild(rt-1);rebuild(rt-1);
+          let d=false;
+          while(!d){
+            total+=TAXA_FUS[rt];
+            const r2=Math.random();
+            if(r2<P_SUC){d=true;}
+            else if(r2<P_SUC+P_FSAFE){/* retry */}
+            else{rebuild(rt-1);}
+          }
+        })(t-1);
+      }
+    }
+  }
+  build(targetT);
+  return total;
+}
+
+function pct(arr,p){
+  const s=Array.from(arr).sort((a,b)=>a-b);
+  return s[Math.floor(p*(s.length-1))];
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── TABELA DE REFERÊNCIA ─────────────────────────────────────────────────────
+(function buildRef(){
+  const tbody=document.getElementById('ref_tbody');
+  let html='';
+  for(let t=1;t<=10;t++){
+    html+=`<tr>
+      <td class="left">T${t}</td>
+      <td class="col-avg">${fmt(TAXA_FUS[t])}</td>
+      <td class="col-conv">${fmt(TAXA_CONV[t])}</td>
+      <td>${t>=2?fmt(TAXA_TRANS[t]):'—'}</td>
+      <td class="col-p99">${fmt(TAXA_CTRANS[t])}</td>
+      <td>${CORES_CT[t]||'?'}</td>
+    </tr>`;
+  }
+  tbody.innerHTML=html;
+})();
+
+// ── CONVERGENCE RUNNER ───────────────────────────────────────────────────────
+async function runConvergence(){
+  const pFood=parse('c_pFood');
+  const pCaro=parse('c_pCaro');
+  const maxT=parseInt(document.getElementById('c_maxT').value);
+  const nRuns=parseInt(document.getElementById('c_runs').value);
+  const btn=document.getElementById('c_btn');
+  const prog=document.getElementById('c_prog');
+  const res=document.getElementById('c_res');
+  btn.disabled=true; res.innerHTML='';
+
+  prog.textContent='Calculando cenários analíticos...';
+  await sleep(20);
+
+  const perf=calcPerf(maxT,pFood);
+  const avg=calcAvg(maxT,pFood);
+
+  const p99arr=[], p50arr=[];
+  // Food para subir item caro para T(t) é T(t-1)
+  for(let t=1;t<=maxT;t++){
+    const foodTier=t-1;
+    if(foodTier===0){
+      p99arr.push(pFood);
+      p50arr.push(pFood);
+    } else {
+      prog.textContent=`Monte Carlo: food T${foodTier} para subir a T${t} / T${maxT}...`;
+      await sleep(5);
+      const samples=new Float64Array(nRuns);
+      for(let i=0;i<nRuns;i++) samples[i]=simOnce(foodTier,pFood);
+      p99arr.push(pct(samples,0.99));
+      p50arr.push(pct(samples,0.50));
+    }
+  }
+
+  prog.textContent='';
+  btn.disabled=false;
+
+  let convAccPerf=pCaro, convAccAvg=pCaro, convAccP99=pCaro;
+  let taxaConvAcc=0;
+  let rows='';
+
+  for(let t=1;t<=maxT;t++){
+    const tc=TAXA_CONV[t];
+    // food necessario e T(t-1)
+    const fp=perf[t-1], fa=avg[t-1], fp9=p99arr[t-1];
+    const sp=fp+tc, sa=fa+tc, sp9=fp9+tc;
+    convAccPerf+=sp; convAccAvg+=sa; convAccP99+=sp9;
+    taxaConvAcc+=tc;
+
+    rows+=`<tr>
+      <td class="left">T${t}</td>
+      <td class="col-perf">${fmt(fp)}</td>
+      <td class="col-avg">${fmt(fa)}</td>
+      <td class="col-p99">${fmt(fp9)}</td>
+      <td class="sep"></td>
+      <td class="col-conv">${fmt(tc)}</td>
+      <td class="sep"></td>
+      <td class="col-perf">${fmt(sp)}</td>
+      <td class="col-avg">${fmt(sa)}</td>
+      <td class="col-p99">${fmt(sp9)}</td>
+      <td class="sep"></td>
+      <td class="col-perf">${fmt(convAccPerf)}</td>
+      <td class="col-avg">${fmt(convAccAvg)}</td>
+      <td class="col-p99">${fmt(convAccP99)}</td>
+    </tr>`;
+  }
+
+  res.innerHTML=`
+  <div class="legend">
+    <span class="pill pill-perf"><span class="pill-dot" style="background:var(--perf)"></span>Perfeito (0 falhas)</span>
+    <span class="pill pill-avg"><span class="pill-dot" style="background:var(--avg)"></span>Médio esperado</span>
+    <span class="pill pill-p99"><span class="pill-dot" style="background:var(--p99)"></span>P99 (99% dos casos)</span>
+    <span class="pill pill-conv"><span class="pill-dot" style="background:var(--conv)"></span>Taxa Convergence</span>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="mlabel">Item Caro T0</div><div class="mval">${fmt(pCaro)}</div><div class="msub">pago uma vez</div></div>
+    <div class="metric"><div class="mlabel">Taxas Conv. acum.</div><div class="mval col-conv">${fmt(taxaConvAcc)}</div><div class="msub">T1→T${maxT}</div></div>
+    <div class="metric"><div class="mlabel col-perf">Total Perfeito</div><div class="mval col-perf">${fmt(convAccPerf)}</div><div class="msub">0 falhas no food</div></div>
+    <div class="metric"><div class="mlabel col-avg">Total Médio</div><div class="mval col-avg">${fmt(convAccAvg)}</div><div class="msub">esperado analítico</div></div>
+    <div class="metric"><div class="mlabel col-p99">Total P99</div><div class="mval col-p99">${fmt(convAccP99)}</div><div class="msub">99% dos casos ≤ isso</div></div>
+    <div class="metric"><div class="mlabel">Multiplicador</div><div class="mval">${(convAccAvg/convAccPerf).toFixed(2)}×</div><div class="msub">médio vs perfeito</div></div>
+  </div>
+
+  <div class="sec-title">Detalhamento por Tier — Food T0 = ${fmt(pFood)} · Item Caro = ${fmt(pCaro)}</div>
+  <div class="tbl-wrap"><table>
+    <thead>
+      <tr>
+        <th class="left" rowspan="2">Tier</th>
+        <th colspan="3" style="text-align:center;color:var(--perf);border-bottom:1px solid var(--border2);">Custo do Food (Fusion Normal)</th>
+        <th class="sep" rowspan="2"></th>
+        <th class="col-conv" rowspan="2">Taxa<br>Convergence</th>
+        <th class="sep" rowspan="2"></th>
+        <th colspan="3" style="text-align:center;border-bottom:1px solid var(--border2);">Custo do Step (food + taxa)</th>
+        <th class="sep" rowspan="2"></th>
+        <th colspan="3" style="text-align:center;border-bottom:1px solid var(--border2);">Total Acumulado (c/ item caro)</th>
+      </tr>
+      <tr>
+        <th class="col-perf">Perfeito</th><th class="col-avg">Médio</th><th class="col-p99">P99</th>
+        <th class="col-perf">Perfeito</th><th class="col-avg">Médio</th><th class="col-p99">P99</th>
+        <th class="col-perf">Perfeito</th><th class="col-avg">Médio</th><th class="col-p99">P99</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table></div>
+  <p class="note">
+    Total Acumulado = Item Caro T0 + soma de todos os steps (food + taxa convergence) até aquele tier.<br>
+    P99 calculado via Monte Carlo (${nRuns/1000}k simulações por tier). Médio via cadeia de Markov analítica.
+  </p>`;
+}
+
+// ── FUSION RUNNER ─────────────────────────────────────────────────────────────
+async function runFusion(){
+  const itemP=parse('f_p0');
+  const maxT=parseInt(document.getElementById('f_maxT').value);
+  const nRuns=parseInt(document.getElementById('f_runs').value);
+  const btn=document.getElementById('f_btn');
+  const prog=document.getElementById('f_prog');
+  const res=document.getElementById('f_res');
+  btn.disabled=true; res.innerHTML='';
+
+  prog.textContent='Calculando analítico...';
+  await sleep(20);
+
+  const perf=calcPerf(maxT,itemP);
+  const avg=calcAvg(maxT,itemP);
+
+  const p99s=[], p50s=[];
+  for(let t=1;t<=maxT;t++){
+    prog.textContent=`Monte Carlo: T${t} / T${maxT}...`;
+    await sleep(5);
+    const samples=new Float64Array(nRuns);
+    for(let i=0;i<nRuns;i++) samples[i]=simOnce(t,itemP);
+    p99s.push(pct(samples,0.99));
+    p50s.push(pct(samples,0.50));
+  }
+
+  // distribuição final
+  prog.textContent=`Monte Carlo final T${maxT}...`;
+  await sleep(5);
+  const mcFinal=new Float64Array(nRuns);
+  for(let i=0;i<nRuns;i++) mcFinal[i]=simOnce(maxT,itemP);
+
+  prog.textContent='';
+  btn.disabled=false;
+
+  let rows='';
+  for(let t=1;t<=maxT;t++){
+    rows+=`<tr>
+      <td class="left">T${t}</td>
+      <td style="color:var(--text2)">${fmt(TAXA_FUS[t])}</td>
+      <td class="col-perf">${fmt(perf[t-1])} + ${fmt(perf[t-1])} + ${fmt(TAXA_FUS[t])}</td>
+      <td class="col-perf">${fmt(perf[t])}</td>
+      <td class="sep"></td>
+      <td class="col-avg">${fmt(avg[t])}</td>
+      <td class="col-p99">${fmt(p99s[t-1])}</td>
+    </tr>`;
+  }
+
+  const mult=(avg[maxT]/perf[maxT]).toFixed(2);
+
+  res.innerHTML=`
+  <div class="legend">
+    <span class="pill pill-perf"><span class="pill-dot" style="background:var(--perf)"></span>Perfeito (0 falhas)</span>
+    <span class="pill pill-avg"><span class="pill-dot" style="background:var(--avg)"></span>Médio esperado</span>
+    <span class="pill pill-p99"><span class="pill-dot" style="background:var(--p99)"></span>P99 (99% dos casos)</span>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="mlabel col-perf">Total Perfeito</div><div class="mval col-perf">${fmt(perf[maxT])}</div><div class="msub">${Math.pow(2,maxT)} itens T0</div></div>
+    <div class="metric"><div class="mlabel col-avg">Total Médio</div><div class="mval col-avg">${fmt(avg[maxT])}</div><div class="msub">Markov analítico</div></div>
+    <div class="metric"><div class="mlabel col-p99">Total P99</div><div class="mval col-p99">${fmt(p99s[maxT-1])}</div><div class="msub">99% dos casos</div></div>
+    <div class="metric"><div class="mlabel">Multiplicador</div><div class="mval">${mult}×</div><div class="msub">médio vs perfeito</div></div>
+  </div>
+
+  <div class="sec-title">Custo Acumulado por Tier — Item T0 = ${fmt(itemP)}</div>
+  <div class="tbl-wrap"><table>
+    <thead>
+      <tr>
+        <th class="left" rowspan="2">Tier</th>
+        <th rowspan="2" style="text-align:center;color:var(--text2);">Taxa Forge</th>
+        <th colspan="2" style="text-align:center;color:var(--perf);border-bottom:1px solid var(--border2);">Perfeito (0 falhas)</th>
+        <th class="sep" rowspan="2"></th>
+        <th class="col-avg" rowspan="2">Médio Acumulado</th>
+        <th class="col-p99" rowspan="2">P99 Acumulado</th>
+      </tr>
+      <tr>
+        <th class="col-perf">Breakdown</th>
+        <th class="col-perf">Total Acum.</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table></div>
+
+  <div class="sec-title" style="margin-top:1.5rem;">Distribuição Monte Carlo — T${maxT} (${nRuns/1000}k runs)</div>
+  <div class="metrics">
+    <div class="metric"><div class="mlabel">P10</div><div class="mval">${fmt(pct(mcFinal,.10))}</div><div class="msub">melhor 10%</div></div>
+    <div class="metric"><div class="mlabel">P25</div><div class="mval">${fmt(pct(mcFinal,.25))}</div></div>
+    <div class="metric"><div class="mlabel">P50 mediana</div><div class="mval">${fmt(pct(mcFinal,.50))}</div></div>
+    <div class="metric"><div class="mlabel">P75</div><div class="mval">${fmt(pct(mcFinal,.75))}</div></div>
+    <div class="metric"><div class="mlabel">P90</div><div class="mval">${fmt(pct(mcFinal,.90))}</div></div>
+    <div class="metric"><div class="mlabel col-p99">P99</div><div class="mval col-p99">${fmt(pct(mcFinal,.99))}</div><div class="msub">pior 1%</div></div>
+  </div>
+  <p class="note">Multiplicador médio vs perfeito: ${mult}×. Cada falha com perda de tier dispara reconstrução recursiva dos tiers anteriores.</p>`;
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+</script>
+</body>
+</html>
